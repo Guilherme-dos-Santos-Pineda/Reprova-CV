@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.5.1/mammoth.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+    <title>ReprovaCV</title>
+    <style>
+        /* Variáveis CSS para consistência */
+        :root {
+            --primary-color: #dc2626;
+            --primary-dark: #b91c1c;
+            --primary-darker: #991b1b;
+            --accent-color: #fbbf24;
+            --text-dark: #1f2937;
+            --text-light: #f5f5f5;
+            --text-gray: #6b7280;
+            --bg-light: #fafafa;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+
+        /* FORM DE PAGAMENTO -- INICIO */
+        .glass-container {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            width: 100%;
+            max-width: 450px;
+            color: white;
+            display: none;
+            max-width: 600px;
+        }
+        
+        .payment-header {
+            text-align: center;
+            margin-bottom: 25px;
+            background-color: #00000073;
+            padding: 5px;
+            border-radius: 10px;
+        }
+        
+        .payment-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .payment-method {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .payment-amount {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        
+        .form-group {
+            margin-bottom: 1px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            font-size: 15px;
+            color: white;
+            transition: all 0.3s;
+        }
+        
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+        }
+        
+        .buttons-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .cancel-btn {
+            flex: 1;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .cancel-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .pay-btn {
+            flex: 2;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .pay-btn:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-150%);
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 15px 40px 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            opacity: 0;
+            transition: transform 0.4s ease, opacity 0.4s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 280px;
+            max-width: 90%;
+        }
+
+        /* Tipos de notificação */
+        .notification.success { border-left: 4px solid #4caf50; }
+        .notification.error { border-left: 4px solid #f44336; }
+        .notification.info { border-left: 4px solid #2196f3; }
+
+        /* Estado visível */
+        .notification.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Botão de fechar */
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #555;
+            margin-left: 10px;
+        }
+        .notification-close:hover {
+            color: #000;
+        }
+        
+        @media (max-width: 480px) {
+            .glass-container {
+                padding: 20px;
+            }
+            
+            .buttons-container {
+                flex-direction: column;
+            }
+        }
+        /* FORM DE PAGAMENTO -- FIM */
+
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 50%, var(--primary-darker) 100%);
+            min-height: 60vh;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-light);
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M20 20 L80 20 L80 80 L20 80 Z' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='0.5'/%3E%3Cpath d='M25 30 L75 30 M25 35 L70 35 M25 40 L65 40 M25 45 L75 45 M25 50 L60 50 M25 55 L70 55' stroke='rgba(255,255,255,0.08)' stroke-width='0.3'/%3E%3C/svg%3E");
+            background-size: 120px 120px;
+            animation: float 20s ease-in-out infinite;
+            opacity: 0.3;
+        }
+
+        .hero-section::after {
+            content: '';
+            position: absolute;
+            top: -50px;
+            right: -100px;
+            width: 300px;
+            height: 400px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 250'%3E%3Cpath d='M40 30 L160 30 L160 220 L40 220 Z' fill='rgba(255,255,255,0.08)' stroke='rgba(255,255,255,0.12)' stroke-width='1'/%3E%3Cpath d='M50 50 L150 50 M50 60 L140 60 M50 70 L130 70 M50 80 L145 80 M50 90 L125 90 M50 100 L140 100 M50 110 L135 110 M50 120 L150 120' stroke='rgba(255,255,255,0.06)' stroke-width='0.8'/%3E%3C/svg%3E");
+            transform: rotate(15deg);
+            animation: floatSlow 25s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(2deg); }
+        }
+
+        @keyframes floatSlow {
+            0%, 100% { transform: rotate(15deg) translateY(0px); }
+            50% { transform: rotate(18deg) translateY(-30px); }
+        }
+
+        .hero-content {
+            text-align: center;
+            z-index: 2;
+            max-width: 800px;
+            position: relative;
+        }
+
+        .logo {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+            letter-spacing: -0.5px;
+        }
+
+        @media (min-width: 768px) {
+            .logo {
+                font-size: 4.5rem;
+            }
+        }
+
+        .logo .cv {
+            color: #fca5a5;
+            position: relative;
+        }
+
+        .logo .cv::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #fca5a5, transparent);
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.4;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+            font-weight: 500;
+        }
+
+        @media (min-width: 768px) {
+            .subtitle {
+                font-size: 1.5rem;
+            }
+
+        }
+
+        .description {
+            font-size: 1.1rem;
+            margin-bottom: 2.5rem;
+            opacity: 0.95;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 34px;
+        }
+
+        .fire-emoji {
+            font-size: 1.3rem;
+            animation: flicker 2s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        @keyframes flicker {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
+
+        .stats {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0.9;
+            background: rgba(0,0,0,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            backdrop-filter: blur(5px);
+        }
+
+        .star {
+            color: var(--accent-color);
+        }
+
+        /* Upload Section */
+        .upload-section {
+            padding: 4rem 2rem;
+            display: flex;
+            justify-content: center;
+            position: relative;
+            margin-top: -180px;
+        }
+
+        .upload-container {
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: var(--shadow);
+            text-align: center;
+            max-width: 550px;
+            width: 100%;
+            position: relative;
+            z-index: 10;
+        }
+
+        @media (min-width: 768px) {
+            .upload-container {
+                padding: 3rem;
+            }
+        }
+
+        .upload-title {
+            font-size: 1.8rem;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        @media (min-width: 768px) {
+            .upload-title {
+                font-size: 2.2rem;
+            }
+        }
+
+        .upload-subtitle {
+            color: var(--text-gray);
+            font-size: 1rem;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        .wink-emoji {
+            font-size: 1.2rem;
+            display: inline-block;
+            animation: wink 3s infinite;
+        }
+
+        @keyframes wink {
+            0%, 90%, 100% { transform: rotate(0); }
+            92%, 96% { transform: rotate(-15deg); }
+            94%, 98% { transform: rotate(15deg); }
+        }
+
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 15px;
+            padding: 2.5rem 2rem;
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+            background: var(--bg-light);
+            margin-bottom: 1.5rem;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--primary-color);
+            background: #fef2f2;
+            transform: translateY(-3px);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #9ca3af;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+        }
+
+        .upload-area:hover .upload-icon {
+            transform: scale(1.1);
+        }
+
+        .upload-text {
+            color: var(--text-dark);
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-hint {
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .select-button, .envio-button {
+            background: var(--text-dark);
+            color: white;
+            border: none;
+            padding: 0.9rem 2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            flex: 1;
+            min-width: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .select-button:hover {
+            background: #374151;
+            transform: translateY(-2px);
+        }
+
+        .envio-button {
+            display: none;
+            background: var(--primary-color);
+        }
+
+        .envio-button:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .envio-button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* Footer */
+        footer {
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-gray);
+            line-height: 1.6;
+        }
+
+        footer p {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Loading Overlay */
+        #loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 1.5rem;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 1.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.65);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease;
+            padding: 10px;
+        }
+
+        .modal {
+            background: #fff;
+            padding: 30px 40px;
+            border-radius: 16px;
+            max-width: 650px;
+            width: 90%;
+            max-height: 85%;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: slideUp 0.35s ease;
+            position: relative;
+        }
+
+        .modal::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .modal::-webkit-scrollbar-thumb {
+            background: #bbb;
+            border-radius: 10px;
+        }
+
+        .modal::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+
+        .modal::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .modal {
+            scrollbar-width: thin;
+            scrollbar-color: #bbb transparent;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            cursor: pointer;
+            font-size: 24px;
+            font-weight: bold;
+            color: #667;
+            transition: var(--transition);
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .close-btn:hover {
+            color: #000;
+            background: #f0f0f0;
+        }
+
+        .modal h2 {
+            margin-bottom: 1.5rem;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        #modalContent {
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        #modalContent p {
+            margin-bottom: 1rem;
+            padding: 10px;
+            border-left: 3px solid var(--primary-color);
+            background: #f9fafb;
+        }
+
+        .cta-button {
+            background: var(--text-dark);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: none;
+            width: 100%;
+            margin-top: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-button::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+            transform: rotate(30deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) rotate(30deg); }
+            100% { transform: translateX(100%) rotate(30deg); }
+        }
+
+        .cta-button:hover {
+            background: #374151;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 2.8rem;
+            }
+            
+            .subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .description {
+                font-size: 0.95rem;
+            }
+            
+            .stats {
+                position: static;
+                justify-content: center;
+                margin-top: 2rem;
+                width: fit-content;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            
+            .upload-container {
+                padding: 2rem;
+                margin: 0 1rem;
+            }
+            
+            .upload-section {
+                margin-top: -150px;
+                padding: 2rem 1rem;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .modal {
+                padding: 20px;
+            }
+        }
+
+        /* Animações de entrada */
+        .hero-content, .upload-container {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="hero-section">
+        <div class="stats">
+            <span class="star">⭐</span>
+            <span>Já destruímos +1.337 currículos</span>
+        </div>
+        
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="logo">Reprova<span class="cv">CV</span></h1>
+                <p class="subtitle">Preparado para descobrir o que realmente pensam do seu currículo?</p>
+                <p class="description">Nossa IA não tem filtro e vai te dar a real sobre suas qualificações! <span class="fire-emoji">🔥</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="upload-section">
+        <div class="upload-container">
+            <h2 class="upload-title">Cole Seu Currículo Aqui</h2>
+            <p class="upload-subtitle">Aceita PDF, DOC, DOCX... não que isso vá fazer diferença no resultado <span class="wink-emoji">😉</span></p>
+            
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">⬆️</div>
+                <p class="upload-text">Arraste seu currículo aqui</p>
+                <p class="upload-hint">ou clique para selecionar</p>
+                <input type="file" id="fileInput" class="file-input" accept=".pdf,.doc,.docx,.txt">
+            </div>
+            
+            <div class="button-group">
+                <button class="select-button" onclick="document.getElementById('fileInput').click()">
+                    <span>Selecionar Arquivo</span>
+                </button>
+                <button id="envio-button" class="envio-button">
+                    <span>Enviar Currículo</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>Esta análise é gerada por IA e deve ser usada apenas como referência</p>
+            <p>© 2025 Reprova CV</p>
+        </div>
+    </footer>
+
+    <div class="notification" id="notification">
+        <span id="notification-message"></span>
+        <button class="notification-close" onclick="hideNotification()">×</button>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div id="loading-text">Processando currículo... ⏳</div>
+    </div>
+ 
+    <div id="modalOverlay" class="modal-overlay">
+            
+        <!-- FORM DE PAGAMENTO INICIO-->
+        <div class="glass-container">
+
+            <div class="payment-header">
+                <h1>Resume Improvements</h1>
+                <div class="payment-method">Payment via Card</div>
+                <div class="payment-amount">$7.00</div>
+            </div>
+            <form id="form-checkout" class="payment-form">
+                
+                <div class="form-group">
+                    <label for="form-checkout__cardNumber">Card Number</label>
+                    <input type="text" id="form-checkout__cardNumber" />
+                </div>
+
+                <div class="form-group">
+                    <label for="form-checkout__expirationDate">Expiration</label>
+                    <input type="text" id="form-checkout__expirationDate" placeholder="MM/YY"/>
+                </div>
+
+                <div class="form-group">
+                    <label for="form-checkout__securityCode">CVV</label>
+                    <input type="text" id="form-checkout__securityCode" />
+                </div>
+
+                <div class="form-group">
+                    <label for="form-checkout__cardholderName">Cardholder Name</label>
+                    <input type="text" id="form-checkout__cardholderName" />
+                </div>
+
+                <select id="form-checkout__issuer" style="display: none;"></select>
+                <select id="form-checkout__installments" style="display: none;"></select>
+                <select id="form-checkout__identificationType" style="display: none;"></select>
+
+                <div class="form-group">
+                    <label for="form-checkout__cardholderEmail">Cardholder Email</label>
+                    <input type="email" id="form-checkout__cardholderEmail" />
+                </div>
+
+                <!-- <div class="form-group">
+                    <label for="form-checkout__identificationType">Document Type</label>
+                    <select id="form-checkout__identificationType"></select>
+                </div> -->
+
+                <div class="form-group">
+                    <label for="form-checkout__identificationNumber">Document Number</label>
+                    <input type="text" id="form-checkout__identificationNumber" />
+                </div>
+                
+                <div class="buttons-container">
+                    <div class="cancel-btn" id="cancelBtn" role="button" tabindex="0">Cancel</div>
+                    <!-- <div class="pay-btn" id="payBtn" role="button" tabindex="0">Pay with Card</div> -->
+                    <button type="submit" id="form-checkout__submit" style="flex: 1;
+                        padding: 15px;
+                        background: rgba(255, 255, 255, 0.1);
+                        color: white;
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        border-radius: 8px;
+                        font-size: 16px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s;
+                    ">Pagar</button>
+                    <progress value="0" class="progress-bar" style="display: none;">Carregando...</progress>
+                </div>
+
+            </form>        
+        </div>
+        <!-- FORM DE PAGAMENTO FIM-->
+
+        <!-- Modal -->
+        <div class="modal">
+            <span id="closeModal" class="close-btn">&times;</span>
+            <h2>Resposta da IA 🤖🔥</h2>
+            <div id="modalContent">Carregando...</div>
+            <div id="cna" class="container" style="display: none;">Quer uma analise mais detalhada e dicas reais para melhorar seu CV? Apoie o projeto</div>
+            <button id="cta-button" class="cta-button">
+                ⚡ Quero Melhorar meu CV!
+            </button>
+        </div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+    </script>
+    <script defer>
+        // Variáveis globais
+        let loadingTimeout;
+        let textoExtraido;
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const envioButton = document.getElementById('envio-button');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalContent = document.getElementById('modalContent');
+        const modal = document.querySelector('.modal');
+        const closeModal = document.getElementById('closeModal');
+        const ctaButton = document.getElementById('cta-button');
+        const cna = document.getElementById('cna');
+        const mp = new MercadoPago("TEST-1a89a93f-da87-4e0c-8be3-32e40f87521c");
+        let sessionToken;
+
+        // Gerar token de sessão
+        async function generateSession() {
+            try {
+                console.log('🔄 Gerando token de sessão...');
+                
+                const response = await fetch('/generate-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json(); // ← AWAIT aqui
+                    throw new Error(error.error || 'Não foi possível gerar sessão');
+                }
+                
+                const data = await response.json(); // ← AWAIT aqui
+                sessionToken = data.token;
+                
+                console.log('✅ Token de sessão gerado com sucesso');
+                return data.token;
+                
+            } catch (error) {
+                console.error('❌ Erro ao gerar token:', error);
+                sessionToken = null;
+                throw new Error('Falha na autenticação. Recarregue a página.');
+            }
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            generateSession()
+        });
+
+        function setupEventListeners() {
+            // Drag and drop functionality
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleDrop);
+            
+            // File input change
+            fileInput.addEventListener('change', function() {
+                handleFileSelect(this.files[0]);
+            });
+            
+            // Envio button click
+            envioButton.addEventListener('click', handleEnvioClick);
+            
+            // Modal close
+            closeModal.addEventListener('click', closeModalHandler);
+            
+            // Close modal when clicking outside
+            modalOverlay.addEventListener('click', function(e) {
+                if (e.target === modalOverlay) {
+                    closeModalHandler();
+                }
+            });
+            
+            // CTA button click
+            // ctaButton.addEventListener('click', handleCtaClick);
+            ctaButton.addEventListener('click', showForm);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        }
+
+        function handleFileSelect(file) {
+            if (!file) return;
+            
+            updateUploadArea(file.name);
+            showLoading();
+            
+            // Extrair texto com base no tipo de arquivo
+            const fileType = file.type;
+            const extension = file.name.split('.').pop().toLowerCase();
+            
+            let extractionPromise;
+            
+            if (fileType === 'application/pdf') {
+                extractionPromise = extractTextFromPDF(file);
+            } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+                      fileType === 'application/msword' || 
+                      extension === 'doc' || 
+                      extension === 'docx') {
+                extractionPromise = extractTextFromDoc(file);
+            } else if (fileType === 'text/plain' || extension === 'txt') {
+                extractionPromise = extractTextFromTxt(file);
+            } else {
+                hideLoading();
+                alert('Tipo de arquivo não suportado!');
+                return;
+            }
+            
+            extractionPromise
+                .then(texto => {
+                    if (!texto || texto.trim() === "") {
+                        // Se não extraiu texto, tenta OCR para PDFs
+                        if (fileType === 'application/pdf') {
+                            return extractTextFromPDFWithOCR(file);
+                        }
+                        return Promise.reject('Não foi possível extrair texto do arquivo');
+                    }
+                    console.log(texto)
+                    return texto;
+                })
+                .then(texto => {
+                    hideLoading();
+                    textoExtraido = texto;
+                    envioButton.style.display = 'flex';
+                    envioButton.disabled = false;
+                })
+                .catch(err => {
+                    hideLoading();
+                    console.error("Erro ao extrair texto:", err);
+                    alert('Erro ao processar o arquivo. Tente novamente com um arquivo diferente.');
+                    resetUploadArea();
+                });
+        }
+
+        function updateUploadArea(fileName) {
+            uploadArea.innerHTML = `
+                <div class="upload-icon">📄</div>
+                <p class="upload-text">Arquivo selecionado:</p>
+                <p class="upload-hint">${fileName}</p>
+                <p style="color: #ef4444; font-weight: bold; margin-top: 1rem;">
+                    Espero que esteja preparado para a destruição... 💀
+                </p>
+            `;
+        }
+
+        function resetUploadArea() {
+            uploadArea.innerHTML = `
+                <div class="upload-icon">⬆️</div>
+                <p class="upload-text">Arraste seu currículo aqui</p>
+                <p class="upload-hint">ou clique para selecionar</p>
+                <input type="file" id="fileInput" class="file-input" accept=".pdf,.doc,.docx,.txt">
+            `;
+            fileInput.addEventListener('change', function() {
+                handleFileSelect(this.files[0]);
+            });
+            envioButton.style.display = 'none';
+        }
+
+        function showLoading() {
+            loadingOverlay.style.display = 'flex';
+            loadingText.innerText = "Processando currículo... ⏳";
+            
+            loadingTimeout = setTimeout(() => {
+                loadingText.innerText = "Tem mais lixo do que o esperado. 🔥";
+            }, 3000);
+            
+            loadingTimeout = setTimeout(() => {
+                loadingText.innerText = "Tem mais lixo do que o esperado.. 🔥";
+            }, 4000);
+            
+            loadingTimeout = setTimeout(() => {
+                loadingText.innerText = "Tem mais lixo do que o esperado... 🔥";
+            }, 5000);
+        }
+
+        function hideLoading() {
+            loadingOverlay.style.display = 'none';
+            clearTimeout(loadingTimeout);
+        }
+
+        // Exibe o modal e chama a IA
+        function handleEnvioClick() {
+            if (!textoExtraido) {
+                alert('Por favor, selecione um arquivo primeiro.');
+                return;
+            }
+            
+            modalOverlay.style.display = "flex";
+            modalContent.innerHTML = "<p>Analisando seu currículo... 🤔</p>";
+            
+            requestAIZoeira()
+                .then(resposta => {
+                    modalContent.innerHTML = formatarTextoIA(resposta);
+                    ctaButton.style.display = "block";
+                    cna.style.display = "block";
+                })
+                .catch(err => {
+                    console.error("Erro ao chamar API:", err);
+                    modalContent.innerHTML = `<p><b>Erro:</b> ${err.message || 'Falha ao conectar com o serviço de análise'}</p>`;
+                });
+        }
+
+        function closeModalHandler() {
+            modalOverlay.style.display = "none";
+            ctaButton.style.display = "none";
+            cna.style.display = "none";
+            // window.location.reload();
+        }
+
+        // Função responsavel levar pra pagina de checkout --- chamar ela depois de preencher o form
+        async function handleCtaClick() {
+            try {
+                // Chama o servidor para criar a preferência
+                const response = await fetch("/pagar");
+                const data = await response.json();
+
+                if (data.init_point) {
+                    // Redireciona o usuário para o checkout do Mercado Pago
+                    window.location.href = data.init_point;
+                } else {
+                    alert("Erro ao iniciar o pagamento. Tente novamente.");
+                }
+            } catch (err) {
+                console.error("Erro ao iniciar pagamento:", err);
+                alert("Erro ao iniciar o pagamento.");
+            }
+
+            // Esconde os elementos da sua interface
+            ctaButton.style.display = "none";
+            cna.style.display = "none";
+            modalOverlay.style.display = "none";
+        }
+
+        // Funções de extração de texto PDF, OCR, Doc e Txt
+        async function extractTextFromPDF(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = "";
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                const pageText = content.items.map(item => item.str).join(" ");
+                fullText += pageText + "\n\n";
+            }
+
+            return fullText;
+        }
+
+        async function extractTextFromPDFWithOCR(file) {
+            loadingText.innerText = "Usando OCR para extrair texto... 🔍";
+
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+
+            let fullText = '';
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 2 });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                const ctx = canvas.getContext('2d');
+
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+                // OCR na imagem da página
+                const { data: { text } } = await Tesseract.recognize(canvas, 'por');
+                fullText += text + '\n';
+            }
+
+            return fullText;
+        }
+
+        async function extractTextFromDoc(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            return result.value;
+        }
+
+        async function extractTextFromTxt(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsText(file);
+            });
+        }
+
+        // Faz a chamada para a I.A e formata texto do modal
+        function requestAIZoeira() {
+            return fetch("/analisar-cv", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    'X-Session-Token': sessionToken
+                },
+                body: JSON.stringify({ texto: textoExtraido })
+            })
+            .then(async (res) => {
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    if (res.status === 401 && errorData.error.includes('token')) {
+                        alert('🔄 Token expirado, reload page');
+                    }
+                    throw new Error(errorData.error || "Erro na requisição");
+                }
+                return res.json();
+            })
+            .then(data => data.resposta);
+        }
+
+        function formatarTextoIA(texto) {
+            // Transforma quebras duplas em <p>
+            let formatado = texto
+                .replace(/\n\n/g, "</p><p>") // parágrafos
+                .replace(/\n\*/g, "<br>•")   // bullets simples
+                .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>"); // negrito estilo markdown
+
+            formatado = "<p>" + formatado + "</p>";
+
+            return formatado;
+        }
+
+        const payBtn = document.getElementById('form-checkout__submit');
+        function showForm() {
+            const glassContainer = document.querySelector('.glass-container');
+            glassContainer.style.display = 'block';
+            modal.style.display = "none";
+            ctaButton.style.display = "none";
+            cna.style.display = "none";
+
+            const cancelBtn = document.getElementById('cancelBtn');
+
+            payBtn.addEventListener('click', () => {
+                payBtn.textContent = 'Processando...';
+                payBtn.disabled = true;
+
+                document.getElementById('form-checkout').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                setTimeout(()=>{
+                    showNotification("Confira e preencha todos os campos obrigatórios antes de pagar.", "error")
+                },10000)
+            });
+
+            // Cancelar
+            cancelBtn.addEventListener('click', () => {
+                glassContainer.style.display = "none";
+                modal.style.display = "initial";
+                ctaButton.style.display = "block";
+                cna.style.display = "block";
+            });
+        }
+
+        const cardForm = mp.cardForm({
+            amount: "5",
+            autoMount: true,
+            form: {
+                id: "form-checkout",
+                cardNumber: { 
+                    id: "form-checkout__cardNumber", 
+                    placeholder: "Número do cartão" 
+                },
+                expirationDate: { 
+                    id: "form-checkout__expirationDate", 
+                    placeholder: "MM/YY" 
+                },
+                securityCode: { 
+                    id: "form-checkout__securityCode", 
+                    placeholder: "CVV" 
+                },
+                cardholderName: { 
+                    id: "form-checkout__cardholderName", 
+                    placeholder: "Nome no cartão" 
+                },
+                issuer: { 
+                    id: "form-checkout__issuer", 
+                    placeholder: "Banco emissor" 
+                },
+                installments: { 
+                    id: "form-checkout__installments", 
+                    placeholder: "Parcelas" 
+                },
+                identificationType: { 
+                    id: "form-checkout__identificationType", 
+                    placeholder: "Tipo de documento" 
+                },
+                identificationNumber: { 
+                    id: "form-checkout__identificationNumber", 
+                    placeholder: "Número do documento" 
+                },
+                cardholderEmail: { 
+                    id: "form-checkout__cardholderEmail", 
+                    placeholder: "E-mail" 
+                },
+            },
+            callbacks: {
+                onFormMounted: error => {
+                    if (error) return console.warn("Erro ao montar form:", error);
+                    console.log("Form montado com sucesso!");
+                },
+                onSubmit: event => {
+                    event.preventDefault();
+
+                    const {
+                        paymentMethodId: payment_method_id,
+                        issuerId: issuer_id,
+                        cardholderEmail: email,
+                        amount,
+                        token,
+                        installments,
+                        identificationNumber,
+                        identificationType,
+                        errors
+                    } = cardForm.getCardFormData();
+
+                    // 🔍 Validação manual básica
+                    if (!email || !identificationNumber || !identificationType) {
+                        showNotification("Preencha todos os campos obrigatórios antes de pagar.", "error");
+                        payBtn.disabled = false;
+                        payBtn.textContent = "Pagar";
+                        return;
+                    }
+
+                    if (!token) {
+                        if (errors && errors.length > 0) {
+                            errors.forEach(err => showNotification(`Erro: ${err.message}`, "error"));
+                        } else {
+                            showNotification("Erro ao gerar token do cartão. Verifique os dados.", "error");
+                        }
+
+                        const payBtn = document.getElementById('form-checkout__submit');
+                        payBtn.disabled = false;
+                        payBtn.textContent = "Pagar";
+                        return;
+                    }
+
+                    fetch("/process_payment", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            token,
+                            issuer_id,
+                            payment_method_id,
+                            transaction_amount: 5,
+                            installments: Number(installments) || 1,
+                            description: "Análise detalhada de currículo - ReprovaCV",
+                            payer: {
+                                email,
+                                identification: { 
+                                    type: identificationType, 
+                                    number: identificationNumber 
+                                },
+                            },
+                        }),
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status === 'approved') {
+                            showNotification("Pagamento aprovado!", "success");
+                            window.location.href = `/sucesso?token=${result.accessToken}`;
+                        } else {
+                            showNotification("Pagamento rejeitado: " + result.status_detail, "error");
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Erro:", error);
+                        showNotification("Erro ao processar pagamento", "error");
+                    });
+                },
+                onFetching: (resource) => {
+                    console.log("Fetching resource: ", resource);
+                    const progressBar = document.querySelector(".progress-bar");
+                    if (progressBar) {
+                        progressBar.removeAttribute("value");
+                    }
+                    return () => {
+                        if (progressBar) {
+                            progressBar.setAttribute("value", "0");
+                        }
+                    };
+                }
+            },
+        });
+    
+        let notificationTimeout;
+
+        function showNotification(message, type = "info") {
+            const notification = document.getElementById("notification");
+            const messageEl = document.getElementById("notification-message");
+            const payBtn = document.getElementById('form-checkout__submit');
+
+            messageEl.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add("show");
+
+            // Habilita novamente o botão caso tenha sido desabilitado
+            if (payBtn) {
+                payBtn.disabled = false;
+                payBtn.textContent = "Pagar";
+            }
+
+            // Limpa timeout anterior e define novo
+            clearTimeout(notificationTimeout);
+            notificationTimeout = setTimeout(() => {
+                hideNotification();
+            }, 4000);
+        }
+
+        function hideNotification() {
+            const notification = document.getElementById("notification");
+            notification.classList.remove("show");
+        }
+    
+    </script>
+</body>
+</html>

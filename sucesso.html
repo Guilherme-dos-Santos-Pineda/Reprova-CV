@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento Aprovado - ReprovaCV</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.5.1/mammoth.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            /* flex-direction: column; */
+        }
+
+        .success-container {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 2rem auto;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+           50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+            }
+        }
+
+        .success-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+
+        .success-subtitle {
+            font-size: 1.3rem;
+            color: #059669;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        .success-message {
+            font-size: 1.1rem;
+            color: #4b5563;
+            line-height: 1.6;
+            margin-bottom: 2.5rem;
+        }
+
+        .order-details {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid #10b981;
+        }
+
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .order-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #1f2937;
+        }
+
+        .order-label {
+            color: #6b7280;
+        }
+
+        .order-value {
+            color: #1f2937;
+            font-weight: 600;
+        }
+
+        .next-steps {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .next-steps h3 {
+            color: #92400e;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .next-steps ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .next-steps li {
+            color: #78350f;
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .next-steps li::before {
+            content: "✉️";
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        /* Seção de Análise Construtiva */
+        .analysis-section {
+            background: #e0f2fe;
+            border: 1px solid #0ea5e9;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .analysis-section h3 {
+            color: #0369a1;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .upload-area {
+            border: 2px dashed #0ea5e9;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.7);
+            position: relative;
+        }
+
+        .upload-area:hover {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: #0284c7;
+        }
+
+        .upload-icon {
+            font-size: 2.5rem;
+            color: #0ea5e9;
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #1e40af;
+        }
+
+        .upload-hint {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+        }
+
+        .btn-analysis {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .btn-analysis:hover {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+
+        .btn-analysis:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* Resultados da Análise */
+        .analysis-results {
+            display: none;
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+            border-left: 4px solid #0ea5e9;
+            text-align: left;
+        }
+
+        .analysis-results h4 {
+            color: #0369a1;
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .result-content {
+            line-height: 1.6;
+        }
+
+        .result-content p {
+            margin-bottom: 1rem;
+        }
+
+        .result-content ul {
+            margin-left: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .result-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Loading */
+        .loading-analysis {
+            display: none;
+            margin: 1.5rem 0;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(14, 165, 233, 0.2);
+            border-radius: 50%;
+            border-top-color: #0ea5e9;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            color: white;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(14, 165, 233, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+            border-color: #d1d5db;
+            transform: translateY(-1px);
+        }
+
+        .social-share {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .social-share h4 {
+            color: #6b7280;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .social-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .social-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            transition: transform 0.2s ease;
+        }
+
+        .social-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .social-btn.twitter {
+            background: #1da1f2;
+            color: white;
+        }
+
+        .social-btn.linkedin {
+            background: #0077b5;
+            color: white;
+        }
+
+        .social-btn.whatsapp {
+            background: #25d366;
+            color: white;
+        }
+
+        .footer-note {
+            margin-top: 2rem;
+            font-size: 0.85rem;
+            color: #9ca3af;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 768px) {
+            .success-container {
+                padding: 2rem;
+                margin: 1rem;
+            }
+            
+            .success-title {
+                font-size: 2rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-icon">✅</div>
+        
+        <h1 class="success-title">Pagamento Aprovado!</h1>
+        <p class="success-subtitle">Sua compra foi processada com sucesso</p>
+        
+        <p class="success-message">
+            Parabéns! Você acaba de apoiar o projeto e desbloquear o poder da análise premium do ReprovaCV. 
+        </p>
+
+        <div class="order-details">
+            <div class="order-item">
+                <span class="order-label">Produto:</span>
+                <span class="order-value">Análise Construtiva de CV</span>
+            </div>
+            <div class="order-item">
+                <span class="order-label">Valor Total:</span>
+                <span class="order-value">R$ 5,00</span>
+            </div>
+        </div>
+
+        <!-- Nova Seção: Análise Construtiva com IA -->
+        <div class="analysis-section">
+            <h3><i class="fas fa-rocket"></i> Análise Construtiva com IA</h3>
+            <p>Que tal começar agora mesmo? Envie seu currículo para uma análise profissional detalhada e construtiva:</p>
+            <p>Depois não deixe de conhecer nosso web app 100% gratuito para criar currículos de forma rapida</p>
+            
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">
+                    <i class="fas fa-file-upload"></i>
+                </div>
+                <p class="upload-text">Arraste seu currículo aqui</p>
+                <p class="upload-hint">ou clique para selecionar (PDF, DOC, DOCX, TXT)</p>
+                <input type="file" id="fileInput" class="file-input" accept=".pdf,.doc,.docx,.txt">
+            </div>
+            
+            <button id="analyze-button" class="btn-analysis" disabled>
+                <i class="fas fa-microscope"></i> Analisar Currículo
+            </button>
+
+            <div class="loading-analysis" id="loading-analysis">
+                <div class="spinner"></div>
+                <p>Analisando seu currículo... Isso pode levar alguns instantes</p>
+            </div>
+
+            <div class="analysis-results" id="analysis-results">
+                <h4><i class="fas fa-chart-line"></i> Resultado da Análise Construtiva</h4>
+                <div class="result-content" id="result-content">
+                    
+                </div>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <a href="https://cv-express-alpha.vercel.app/" class="btn btn-primary ">
+                <i class="fas fa-briefcase"></i> Crie seu curriculo novo com o - CV Express
+            </a>
+            <a href="#" class="btn btn-secondary" onclick="voltarParaInicio()">
+                <i class="fas fa-redo"></i> Voltar para Home Page
+            </a>
+        </div>
+
+        <div class="social-share">
+            <h4>Compartilhe com os amigos que também precisam de ajuda:</h4>
+            <div class="social-buttons">
+                <button class="social-btn twitter" onclick="shareTwitter()">
+                    <i class="fab fa-twitter"></i>
+                </button>
+                <button class="social-btn linkedin" onclick="shareLinkedIn()">
+                    <i class="fab fa-linkedin-in"></i>
+                </button>
+                <button class="social-btn whatsapp" onclick="shareWhatsApp()">
+                    <i class="fab fa-whatsapp"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="footer-note" style="display: flex;">
+            💡 <strong>Dica:</strong> Aproveite as sugestões da análise para melhorar seu currículo e aumentar suas chances no mercado de trabalho!
+            <br><br>
+            📧 <strong>Problemas?</strong> Entre em contato conosco em garmecfeels@gmail.com
+        </div>
+    </div>
+
+    <script>
+        // Configuração do PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+
+        // Variáveis globais
+        let textoExtraido;
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const analyzeButton = document.getElementById('analyze-button');
+        const loadingAnalysis = document.getElementById('loading-analysis');
+        const analysisResults = document.getElementById('analysis-results');
+        const resultContent = document.getElementById('result-content');
+        let sessionToken;
+
+        // Gerar token de sessão
+        async function generateSession() {
+            try {
+                console.log('🔄 Gerando token de sessão...');
+                
+                const response = await fetch('/generate-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json(); // ← AWAIT aqui
+                    throw new Error(error.error || 'Não foi possível gerar sessão');
+                }
+                
+                const data = await response.json(); // ← AWAIT aqui
+                sessionToken = data.token;
+                
+                console.log('✅ Token de sessão gerado com sucesso');
+                return data.token;
+                
+            } catch (error) {
+                console.error('❌ Erro ao gerar token:', error);
+                sessionToken = null;
+                throw new Error('Falha na autenticação. Recarregue a página.');
+            }
+        }
+
+        // Gera número de pedido único
+        function generateOrderNumber() {
+            const timestamp = Date.now();
+            const random = Math.floor(Math.random() * 1000);
+            return `#CV-${new Date().getFullYear()}-${timestamp.toString().slice(-6)}${random}`;
+        }
+
+        // Funções de compartilhamento
+        function shareTwitter() {
+            const text = "Acabei de fazer uma análise construtiva do meu currículo no ReprovaCV! Agora tenho insights valiosos para melhorá-lo! 🔥";
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+        }
+
+        function shareLinkedIn() {
+            const text = "Investindo no meu desenvolvimento profissional com análise construtiva de currículo. Recomendo muito! 💼";
+            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`, '_blank');
+        }
+
+        function shareWhatsApp() {
+            const text = "Acabei de fazer uma análise construtiva do meu CV no ReprovaCV... Agora tenho direções claras para melhorá-lo! Vale a pena conferir!";
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+        }
+
+        function voltarParaInicio() {
+            // Simula volta para página inicial
+            if (window.history.length > 1) {
+                window.location.href = '/';
+            } else {
+                window.location.href = '/';
+            }
+        }
+
+        // Efeito confetti simples
+        function showConfetti() {
+            const colors = ['#10b981', '#f59e0b', '#0ea5e9', '#3b82f6', '#8b5cf6'];
+            
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.style.position = 'fixed';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.top = '-10px';
+                    confetti.style.width = '10px';
+                    confetti.style.height = '10px';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.borderRadius = '50%';
+                    confetti.style.zIndex = '9999';
+                    confetti.style.pointerEvents = 'none';
+                    confetti.style.transition = 'all 3s ease-in';
+                    
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => {
+                        confetti.style.top = '100vh';
+                        confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                    }, 100);
+                    
+                    setTimeout(() => {
+                        document.body.removeChild(confetti);
+                    }, 3000);
+                }, i * 50);
+            }
+        }
+
+        // Configurar event listeners para upload e análise
+        document.addEventListener('DOMContentLoaded', function() {          
+            // Efeito confetti (opcional)
+            setTimeout(showConfetti, 500);
+            
+            // Configurar event listeners para upload
+            setupEventListeners();
+
+            generateSession()
+        });
+
+        function setupEventListeners() {
+            // Drag and drop functionality
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleDrop);
+            
+            // File input change
+            fileInput.addEventListener('change', function() {
+                handleFileSelect(this.files[0]);
+            });
+            
+            // Analyze button click
+            analyzeButton.addEventListener('click', handleAnalyzeClick);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#0284c7';
+            uploadArea.style.background = 'rgba(255, 255, 255, 0.9)';
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#0ea5e9';
+            uploadArea.style.background = 'rgba(255, 255, 255, 0.7)';
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            handleDragLeave(e);
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        }
+
+        function handleFileSelect(file) {
+            console.log(file)
+            if (!file) return;
+            
+            updateUploadArea(file.name);
+            analyzeButton.disabled = true;
+            
+            showLoadingAnalysis();
+            
+            // Extrair texto com base no tipo de arquivo
+            const fileType = file.type;
+            const extension = file.name.split('.').pop().toLowerCase();
+            
+            let extractionPromise;
+            
+            if (fileType === 'application/pdf') {
+                extractionPromise = extractTextFromPDF(file);
+            } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+                      fileType === 'application/msword' || 
+                      extension === 'doc' || 
+                      extension === 'docx') {
+                extractionPromise = extractTextFromDoc(file);
+            } else if (fileType === 'text/plain' || extension === 'txt') {
+                extractionPromise = extractTextFromTxt(file);
+            } else {
+                hideLoadingAnalysis();
+                alert('Tipo de arquivo não suportado!');
+                return;
+            }
+            
+            extractionPromise
+                .then(texto => {
+                    if (!texto || texto.trim() === "") {
+                        // Se não extraiu texto, tenta OCR para PDFs
+                        if (fileType === 'application/pdf') {
+                            return extractTextFromPDFWithOCR(file);
+                        }
+                        return Promise.reject('Não foi possível extrair texto do arquivo');
+                    }
+                    return texto;
+                })
+                .then(texto => {
+                    hideLoadingAnalysis();
+                    textoExtraido = texto;
+                    analyzeButton.disabled = false;
+                })
+                .catch(err => {
+                    hideLoadingAnalysis();
+                    console.error("Erro ao extrair texto:", err);
+                    alert('Erro ao processar o arquivo. Tente novamente com um arquivo diferente.');
+                    resetUploadArea();
+                });
+        }
+
+        function updateUploadArea(fileName) {
+            uploadArea.innerHTML = `
+                <div class="upload-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <p class="upload-text">${fileName}</p>
+                <p class="upload-hint">Pronto para análise</p>
+                <input type="file" id="fileInput" class="file-input" accept=".pdf,.doc,.docx,.txt">
+            `;
+            // Re-add event listener to the new file input
+            document.getElementById('fileInput').addEventListener('change', function() {
+                handleFileSelect(this.files[0]);
+            });
+        }
+
+        function resetUploadArea() {
+            uploadArea.innerHTML = `
+                <div class="upload-icon">
+                    <i class="fas fa-file-upload"></i>
+                </div>
+                <p class="upload-text">Arraste seu currículo aqui</p>
+                <p class="upload-hint">ou clique para selecionar (PDF, DOC, DOCX, TXT)</p>
+                <input type="file" id="fileInput" class="file-input" accept=".pdf,.doc,.docx,.txt">
+            `;
+            // Re-add event listener to the new file input
+            document.getElementById('fileInput').addEventListener('change', function() {
+                handleFileSelect(this.files[0]);
+            });
+            analyzeButton.disabled = true;
+        }
+
+        function showLoadingAnalysis() {
+            loadingAnalysis.style.display = 'block';
+        }
+
+        function hideLoadingAnalysis() {
+            loadingAnalysis.style.display = 'none';
+        }
+
+        async function handleAnalyzeClick() {
+            if (!textoExtraido) {
+                alert('Por favor, selecione um arquivo primeiro.');
+                return;
+            }
+
+            showLoadingAnalysis();
+            analysisResults.style.display = 'none';
+
+            try {
+                const resposta = await requestConstructiveAnalysis();
+                hideLoadingAnalysis();
+                resultContent.innerHTML = formatarTextoIA(resposta);
+                analysisResults.style.display = 'block';
+                analysisResults.scrollIntoView({ behavior: 'smooth' });
+            } catch (err) {
+                hideLoadingAnalysis();
+                console.error("Erro ao chamar API:", err);
+                resultContent.innerHTML = `<p><b>Erro:</b> ${err.message || 'Falha ao conectar com o serviço de análise'}</p>`;
+                analysisResults.style.display = 'block';
+            }
+        }
+
+        // Funções de extração de texto
+        async function extractTextFromPDF(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = "";
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                const pageText = content.items.map(item => item.str).join(" ");
+                fullText += pageText + "\n\n";
+            }
+
+            return fullText;
+        }
+
+        async function extractTextFromPDFWithOCR(file) {
+            const loadingText = document.querySelector('#loading-analysis p');
+            loadingText.innerText = "Usando OCR para extrair texto...";
+
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+
+            let fullText = '';
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 2 });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                const ctx = canvas.getContext('2d');
+
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+                // OCR na imagem da página
+                const { data: { text } } = await Tesseract.recognize(canvas, 'por');
+                fullText += text + '\n';
+            }
+
+            return fullText;
+        }
+
+        async function extractTextFromDoc(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            return result.value;
+        }
+
+        async function extractTextFromTxt(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsText(file);
+            });
+        }
+
+        // Faz a chamada para a I.A para análise construtiva
+        async function requestConstructiveAnalysis() {
+            const res = await fetch("/melhorar-cv", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    'X-Session-Token': sessionToken
+                },
+                body: JSON.stringify({ texto: textoExtraido })
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                if (res.status === 401 && errorData.error.includes('token')) {
+                    alert('🔄 Token expirado, reload page');
+                }
+                throw new Error(errorData.error || `Erro na requisição: ${res.status}`);
+            }
+
+            const data = await res.json();
+            return data.resposta;
+        }        
+
+        function formatarTextoIA(texto) {
+            // Transforma quebras duplas em <p> e mantém a formatação
+            let formatado = texto
+                .replace(/\n\n/g, "</p><p>") // parágrafos
+                .replace(/\n\*/g, "<br>•")   // bullets simples
+                .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>") // negrito
+                .replace(/\*(.*?)\*/g, "<em>$1</em>"); // itálico
+
+            formatado = "<p>" + formatado + "</p>";
+
+            return formatado;
+        }
+
+
+        // 1. Exibe aviso assim que o usuário chega na página
+        window.addEventListener("load", () => {
+            setTimeout(()=>{
+                alert("Favorite esse site para não perder seu acesso! ⚡ Você poderá usar a análise premium quantas vezes desejar durante 20Hrs. ⚡ Confira nosso criador de curriculos!");
+            }, 3000)
+        });
+
+        // // 2. Detecta quando vai fechar ou recarregar (aviso genérico do navegador)
+        // window.addEventListener("beforeunload", function (e) {
+        //     const message = "⚠️ Você perderá o acesso à análise premium se sair ou recarregar esta página.";
+        //     e.preventDefault();
+        //     e.returnValue = message; // Necessário para funcionar
+        //     return message;
+        // });
+
+        // // 3. Detecta quando o mouse sai da área visível do navegador
+        // document.addEventListener("mouseleave", function () {
+        //     alert("😮 Ei! Se você sair desta página, perderá o acesso ilimitado da sua análise premium por hoje.");
+        // });
+
+    </script>
+</body>
+</html>

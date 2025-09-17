@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento Não Processado - ReprovaCV</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .failure-container {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            animation: shakeIn 0.6s ease-out;
+        }
+
+        @keyframes shakeIn {
+            0% {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            25% {
+                opacity: 0.5;
+                transform: translateX(15px);
+            }
+            50% {
+                opacity: 0.75;
+                transform: translateX(-8px);
+            }
+            75% {
+                opacity: 0.9;
+                transform: translateX(4px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .failure-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 2rem auto;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+            animation: pulse 2s ease-in-out infinite;
+            position: relative;
+        }
+
+        .failure-icon::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-radius: 50%;
+            opacity: 0.3;
+            z-index: -1;
+            animation: ripple 2s ease-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(1);
+                opacity: 0.3;
+            }
+            100% {
+                transform: scale(1.3);
+                opacity: 0;
+            }
+        }
+
+        .failure-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+
+        .failure-subtitle {
+            font-size: 1.3rem;
+            color: #ef4444;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        .failure-message {
+            font-size: 1.1rem;
+            color: #4b5563;
+            line-height: 1.6;
+            margin-bottom: 2.5rem;
+        }
+
+        .error-details {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid #ef4444;
+        }
+
+        .error-code {
+            font-family: 'Courier New', monospace;
+            background: #fee2e2;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #991b1b;
+            font-weight: bold;
+        }
+
+        .error-reason {
+            color: #7f1d1d;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-description {
+            color: #991b1b;
+            font-size: 0.95rem;
+        }
+
+        .solutions {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .solutions h3 {
+            color: #92400e;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .solutions ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .solutions li {
+            color: #78350f;
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+            position: relative;
+            line-height: 1.4;
+        }
+
+        .solutions li::before {
+            content: "💡";
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        .retry-section {
+            background: #f0f9ff;
+            border: 1px solid #7dd3fc;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .retry-section h4 {
+            color: #0c4a6e;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .retry-section p {
+            color: #075985;
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+            border-color: #d1d5db;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #ef4444;
+            border: 2px solid #ef4444;
+        }
+
+        .btn-outline:hover {
+            background: #ef4444;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .support-info {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .support-info h4 {
+            color: #1e293b;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .support-contact {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #475569;
+            font-size: 0.95rem;
+        }
+
+        .footer-note {
+            margin-top: 2rem;
+            font-size: 0.85rem;
+            color: #9ca3af;
+            line-height: 1.4;
+        }
+
+        .humor-section {
+            background: #f3f4f6;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border: 1px solid #d1d5db;
+        }
+
+        .humor-section p {
+            color: #4b5563;
+            font-style: italic;
+            margin-bottom: 0.5rem;
+        }
+
+        .humor-section .signature {
+            color: #9ca3af;
+            font-size: 0.9rem;
+            text-align: right;
+        }
+
+        @media (max-width: 768px) {
+            .failure-container {
+                padding: 2rem;
+                margin: 1rem;
+            }
+            
+            .failure-title {
+                font-size: 2rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .support-contact {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="failure-container">
+        <div class="failure-icon">❌</div>
+        
+        <h1 class="failure-title">Oops! Algo deu errado</h1>
+        <p class="failure-subtitle">Não foi possível processar seu pagamento</p>
+        
+        <p class="failure-message">
+            Relaxa, até os melhores currículos têm problemas às vezes! Parece que houve um pequeno contratempo 
+            no processamento do seu pagamento, mas nada que não possamos resolver.
+        </p>
+
+        <div class="error-details">
+            <div class="error-code" id="error-code">ERRO: PAY_500</div>
+            <div class="error-reason" id="error-reason">Erro Desconhecido</div>
+            <div class="error-description" id="error-description">
+                Erro na transação. Isso pode acontecer por diversos motivos.
+            </div>
+        </div>
+
+        <div class="solutions">
+            <h3>🔧 Possíveis Soluções:</h3>
+            <ul>
+                <li><strong>Verifique os dados do cartão:</strong> Número, validade e CVV estão corretos?</li>
+                <li><strong>Confirme o limite:</strong> Seu cartão tem limite suficiente para a compra?</li>
+                <li><strong>Tente outro cartão:</strong> Às vezes um cartão diferente resolve o problema</li>
+                <li><strong>Entre em contato com seu banco:</strong> Eles podem ter bloqueado a compra por segurança</li>
+                <li><strong>Aguarde alguns minutos:</strong> Problemas temporários do sistema podem ocorrer</li>
+            </ul>
+        </div>
+
+        <div class="retry-section">
+            <h4>🔄 Quer tentar novamente?</h4>
+            <p>
+                Nenhum problema! Você pode tentar processar o pagamento novamente. 
+                Para a sua segurança seus dados nunca ficam salvos.
+            </p>
+        </div>
+
+        <div class="humor-section">
+            <p>"Seu currículo pode estar uma droga, mas pelo menos seu cartão funciona... ou não 🤷‍♂️"</p>
+            <div class="signature">- IA do ReprovaCV</div>
+        </div>
+
+        <div class="support-info">
+            <h4>🎧 Precisa de Ajuda?</h4>
+            <div class="support-contact">
+                <div class="contact-item">
+                    <span>📧</span>
+                    <span>garmecfeels@gmail.com</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-note">
+            💡 <strong>Dica profissional:</strong> Problemas de pagamento são temporários, mas um currículo ruim é para sempre... 
+            até você melhorá-lo conosco! 😄
+            <br><br>
+            🔒 <strong>Segurança:</strong> Nenhum dado do seu cartão foi armazenado. Sua segurança é nossa prioridade.
+        </div>
+    </div>
+</body>
+</html>
