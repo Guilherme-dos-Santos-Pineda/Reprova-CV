@@ -16,11 +16,13 @@ dotenv.config(); // pega do server
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.static(__dirname));
+//app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, "public"))); //evita expor dados sensiveis
 
 // --- Cache simples em memória ---
 const cache = {};
@@ -51,7 +53,14 @@ const blockedFingerprints = new Set();
 
 // Configurar domínios permitidos
 
-const ALLOWED_ORIGINS = ["*"];
+// const ALLOWED_ORIGINS = ["*"];
+
+const ALLOWED_ORIGINS = [
+  "https://reprovacurriculo.com.br",
+  "https://www.reprovacurriculo.com.br",
+  "http://localhost:3000", // para testes locais
+  "http://127.0.0.1:3000"
+];
 
 // const ALLOWED_ORIGINS = [
 //   'http://localhost:3000',
