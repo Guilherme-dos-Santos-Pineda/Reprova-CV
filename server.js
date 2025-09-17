@@ -10,13 +10,14 @@ import jwt from "jsonwebtoken";
 import { createPreference } from "./checkout.js";
 import { processPayment } from "./payment.js";
 
-dotenv.config({ path: "./api.env" });
+// dotenv.config({ path: "./api.env" });
+dotenv.config(); // pega do server
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(__dirname));
@@ -49,12 +50,15 @@ const validTokens = new Map();
 const blockedFingerprints = new Set();
 
 // Configurar domínios permitidos
-const ALLOWED_ORIGINS = [
-  'http://localhost:3000',
-  'https://localhost:3000',
-  'https://reprovacurriculo.com.br',
-  // Adicione outros domínios se necessário
-];
+
+const ALLOWED_ORIGINS = [/reprovacurriculo\.com\.br$/, /onrender\.com$/];
+
+// const ALLOWED_ORIGINS = [
+//   'http://localhost:3000',
+//   'https://localhost:3000',
+//   'https://reprovacurriculo.com.br',
+//   // Adicione outros domínios se necessário
+// ];
 
 // Gerar fingerprint do usuário
 function generateFingerprint(req) {
