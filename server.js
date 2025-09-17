@@ -51,7 +51,7 @@ const blockedFingerprints = new Set();
 
 // Configurar domínios permitidos
 
-const ALLOWED_ORIGINS = [/reprovacurriculo\.com\.br$/, /onrender\.com$/];
+const ALLOWED_ORIGINS = ["*"];
 
 // const ALLOWED_ORIGINS = [
 //   'http://localhost:3000',
