@@ -48,10 +48,9 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             padding: 30px;
             width: 100%;
-            max-width: 450px;
+            max-width: 370px;
             color: white;
             display: none;
-            max-width: 600px;
         }
         
         .payment-header {
@@ -100,6 +99,7 @@
             font-size: 15px;
             color: white;
             transition: all 0.3s;
+            height: 35px;
         }
         
         .form-group input::placeholder {
@@ -131,6 +131,12 @@
             cursor: pointer;
             transition: all 0.3s;
             text-align: center;
+            height: 40px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            align-content: center;
+            justify-content: center;
         }
         
         .cancel-btn:hover {
@@ -877,15 +883,21 @@
                     <div class="cancel-btn" id="cancelBtn" role="button" tabindex="0">Cancel</div>
                     <!-- <div class="pay-btn" id="payBtn" role="button" tabindex="0">Pay with Card</div> -->
                     <button type="submit" id="form-checkout__submit" style="flex: 1;
-                        padding: 15px;
-                        background: rgba(255, 255, 255, 0.1);
-                        color: white;
-                        border: 1px solid rgba(255, 255, 255, 0.2);
-                        border-radius: 8px;
-                        font-size: 16px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.3s;
+                            padding: 15px;
+                            background: rgba(255, 255, 255, 0.1);
+                            color: white;
+                            border: 1px solid rgba(255, 255, 255, 0.2);
+                            border-radius: 8px;
+                            font-size: 16px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.3s;
+                            height: 40px;
+                            display: flex;
+                            flex-direction: row;
+                            align-items: center;
+                            align-content: center;
+                            justify-content: center;
                     ">Pagar</button>
                     <progress value="0" class="progress-bar" style="display: none;">Carregando...</progress>
                 </div>
