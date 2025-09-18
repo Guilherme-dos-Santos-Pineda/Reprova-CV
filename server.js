@@ -16,7 +16,6 @@ dotenv.config(); // pega do server
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -226,7 +225,7 @@ app.get("/", (req, res) => {
   const cached = getCache("index");
   if (cached) return res.send(cached);
 
-  const filePath = path.join(__dirname, "reprovaCV.html");
+  const filePath = path.join(__dirname, "public", "reprovaCV.html");
   res.sendFile(filePath, (err) => {
     if (!err) {
       import("fs").then(fs => {
