@@ -236,7 +236,7 @@ setInterval(() => {
 
 
 
-app.post("/generate-session", 
+app.post("/generate-sessionz", 
   checkOrigin,
   blockExcessiveSessionRequests,  // <-- ADICIONE AQUI
   (req, res) => {
