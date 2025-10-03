@@ -153,10 +153,95 @@ function validateToken(req, res, next) {
 // ENDPOINTS DE PROTEÇÃO
 // =============================================================================
 
-// Gerar token de sessão (chamado pelo frontend)
-app.post("/generate-sessionz", checkOrigin, (req, res) => {
+
+
+
+
+// =============================================================================
+// BLOQUEIO POR EXCESSO DE REQUISIÇÕES NO GENERATE-SESSION
+// =============================================================================
+
+const sessionRequestHistory = new Map();
+const SESSION_MAX_REQUESTS = 5;
+const SESSION_TIME_WINDOW = 5 * 60 * 1000; // 5 minutos
+const SESSION_BLOCK_DURATION = 30 * 60 * 1000; // 30 minutos bloqueado
+
+function blockExcessiveSessionRequests(req, res, next) {
+  const fingerprint = generateFingerprint(req);
+  const now = Date.now();
+  
+  // Buscar ou criar histórico
+  let history = sessionRequestHistory.get(fingerprint);
+  
+  if (!history) {
+    history = { requests: [], blockedUntil: null };
+    sessionRequestHistory.set(fingerprint, history);
+  }
+  
+  // Se está bloqueado, verificar se ainda está no período de bloqueio
+  if (history.blockedUntil && history.blockedUntil > now) {
+    const minutesLeft = Math.ceil((history.blockedUntil - now) / (1000 * 60));
+    console.log(`🚫 Session request blocked: ${fingerprint} - ${minutesLeft}min restantes`);
+    return res.status(429).json({ 
+      error: "Você está bloqueado temporariamente por excesso de requisições",
+      retryAfter: minutesLeft
+    });
+  }
+  
+  // Bloqueio expirou, limpar
+  if (history.blockedUntil && history.blockedUntil <= now) {
+    history.blockedUntil = null;
+    history.requests = [];
+    blockedFingerprints.delete(fingerprint);
+  }
+  
+  // Limpar requisições antigas (fora da janela de 5 minutos)
+  history.requests = history.requests.filter(timestamp => now - timestamp < SESSION_TIME_WINDOW);
+  
+  // Adicionar requisição atual
+  history.requests.push(now);
+  
+  // Verificar se excedeu o limite
+  if (history.requests.length > SESSION_MAX_REQUESTS) {
+    history.blockedUntil = now + SESSION_BLOCK_DURATION;
+    blockedFingerprints.add(fingerprint);
+    
+    console.log(`🚨 BLOQUEIO: ${fingerprint} fez ${history.requests.length} requisições em 5min`);
+    console.log(`   IP: ${req.ip || req.connection.remoteAddress}`);
+    console.log(`   Bloqueado até: ${new Date(history.blockedUntil).toLocaleTimeString()}`);
+    
+    return res.status(429).json({ 
+      error: "Bloqueado por excesso de requisições",
+      message: "Você fez muitas tentativas. Tente novamente em 30 minutos."
+    });
+  }
+  
+  next();
+}
+
+// Limpeza automática a cada 15 minutos
+setInterval(() => {
+  const now = Date.now();
+  for (const [fp, history] of sessionRequestHistory.entries()) {
+    if ((!history.blockedUntil || history.blockedUntil < now) && history.requests.length === 0) {
+      sessionRequestHistory.delete(fp);
+    }
+  }
+}, 15 * 60 * 1000);
+
+
+
+
+
+
+
+
+app.post("/generate-sessionz", 
+  checkOrigin,
+  blockExcessiveSessionRequests,  // <-- ADICIONE AQUI
+  (req, res) => {
   const token = crypto.randomBytes(32).toString('hex');
-  const expiresAt = Date.now() + (10 * 60 * 1000); // 5 minutos
+  const expiresAt = Date.now() + (10 * 60 * 1000);
   
   validTokens.set(token, {
     created: Date.now(),
@@ -164,8 +249,6 @@ app.post("/generate-sessionz", checkOrigin, (req, res) => {
     used: false,
     fingerprint: generateFingerprint(req)
   });
-  
-  // console.log(`🔑 Token generated: ${token.substring(0, 8)}... (expires in 10min)`);
   
   res.json({ 
     token, 
