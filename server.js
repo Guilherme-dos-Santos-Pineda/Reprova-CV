@@ -154,7 +154,7 @@ function validateToken(req, res, next) {
 // =============================================================================
 
 // Gerar token de sessão (chamado pelo frontend)
-app.post("/generate-session", checkOrigin, (req, res) => {
+app.post("/generate-sessionz", checkOrigin, (req, res) => {
   const token = crypto.randomBytes(32).toString('hex');
   const expiresAt = Date.now() + (10 * 60 * 1000); // 5 minutos
   
