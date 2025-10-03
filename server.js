@@ -121,7 +121,7 @@ function blockSuspicious(req, res, next) {
 // Middleware: Validar token de sessão
 function validateToken(req, res, next) {
   const token = req.headers['x-session-token'];
-  const blockedIps = ["200.193.151.122"]; 
+  const blockedIps = ["200.193.151.122", "177.51.211.230"]; 
 
     const clientIp =
     req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
@@ -163,8 +163,8 @@ function validateToken(req, res, next) {
 
 const sessionRequestHistory = new Map();
 const SESSION_MAX_REQUESTS = 5;
-const SESSION_TIME_WINDOW = 5 * 60 * 1000; // 5 minutos
-const SESSION_BLOCK_DURATION = 30 * 60 * 1000; // 30 minutos bloqueado
+const SESSION_TIME_WINDOW = 2 * 60 * 1000; // 2 minutos
+const SESSION_BLOCK_DURATION = 40 * 60 * 1000; // 40 minutos bloqueado
 
 function blockExcessiveSessionRequests(req, res, next) {
   const fingerprint = generateFingerprint(req);
@@ -195,7 +195,7 @@ function blockExcessiveSessionRequests(req, res, next) {
     blockedFingerprints.delete(fingerprint);
   }
   
-  // Limpar requisições antigas (fora da janela de 5 minutos)
+  // Limpar requisições antigas (fora da janela de 2 minutos)
   history.requests = history.requests.filter(timestamp => now - timestamp < SESSION_TIME_WINDOW);
   
   // Adicionar requisição atual
@@ -206,13 +206,13 @@ function blockExcessiveSessionRequests(req, res, next) {
     history.blockedUntil = now + SESSION_BLOCK_DURATION;
     blockedFingerprints.add(fingerprint);
     
-    console.log(`🚨 BLOQUEIO: ${fingerprint} fez ${history.requests.length} requisições em 5min`);
+    console.log(`🚨 BLOQUEIO: ${fingerprint} fez ${history.requests.length} requisições em 2min`);
     console.log(`   IP: ${req.ip || req.connection.remoteAddress}`);
     console.log(`   Bloqueado até: ${new Date(history.blockedUntil).toLocaleTimeString()}`);
     
     return res.status(429).json({ 
       error: "Bloqueado por excesso de requisições",
-      message: "Você fez muitas tentativas. Tente novamente em 30 minutos."
+      message: "Você fez muitas tentativas."
     });
   }
   
