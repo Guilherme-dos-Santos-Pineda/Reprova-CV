@@ -20,79 +20,9 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-
-
-
-
-const blockedIpsFile = path.join(__dirname, "blocked-ips.json");
-
-// Carregar IPs bloqueados do arquivo
-let blockedIps = new Set();
-if (fs.existsSync(blockedIpsFile)) {
-  try {
-    const data = fs.readFileSync(blockedIpsFile, "utf8");
-    blockedIps = new Set(JSON.parse(data));
-    console.log(`🚫 IPs carregados do arquivo: ${blockedIps.size}`);
-  } catch (err) {
-    console.error("Erro ao carregar blocked-ips.json:", err);
-  }
-}
-
-// Função para salvar no arquivo
-function saveBlockedIps() {
-  fs.writeFileSync(blockedIpsFile, JSON.stringify([...blockedIps], null, 2));
-}
-
-// Armazenar requests por IP
-const ipRequests = {};
-
-// Middleware para bloquear IP
-function blockIpsMiddleware(req, res, next) {
-  const rawIp =
-    req.headers["x-forwarded-for"]?.split(",")[0].trim() ||
-    req.connection.remoteAddress;
-  const ip = rawIp.replace("::ffff:", "");
-
-  // Se já está bloqueado → rejeita
-  if (blockedIps.has(ip)) {
-    console.log(`🚫 IP bloqueado permanente tentou acessar: ${ip}`);
-    return res.status(403).json({ error: "Acesso negado" });
-  }
-
-  // Inicializar contagem do IP
-  if (!ipRequests[ip]) {
-    ipRequests[ip] = { count: 0, date: new Date().toDateString() };
-  }
-
-  // Se mudou o dia, resetar
-  if (ipRequests[ip].date !== new Date().toDateString()) {
-    ipRequests[ip].count = 0;
-    ipRequests[ip].date = new Date().toDateString();
-  }
-
-  // Incrementar contagem
-  ipRequests[ip].count++;
-
-  // Se passar de 10 requests, bloquear permanentemente
-  if (ipRequests[ip].count > 10) {
-    blockedIps.add(ip);
-    saveBlockedIps();
-    console.log(`🚫 IP ${ip} banido permanentemente por excesso de requests`);
-    return res.status(403).json({ error: "Acesso negado" });
-  }
-
-  next();
-}
-
-
-
-
-
-
-
 //app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, "public"))); //evita expor dados sensiveis
-app.use(blockIpsMiddleware);
+
 // --- Cache simples em memória ---
 const cache = {};
 const CACHE_TTL = 24 * 60 * 60 * 1000;
@@ -191,6 +121,15 @@ function blockSuspicious(req, res, next) {
 // Middleware: Validar token de sessão
 function validateToken(req, res, next) {
   const token = req.headers['x-session-token'];
+  const blockedIps = ["200.193.151.122"]; 
+
+    const clientIp =
+    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+    req.connection.remoteAddress;
+  
+  if (blockedIps.includes(clientIp)) {
+    return res.status(403).json({ error: "Access denied: IP blocked" });
+  }
   
   if (!token) {
     return res.status(401).json({ error: "Session token required" });
